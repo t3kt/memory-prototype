@@ -11,10 +11,16 @@ import java.util.List;
 /**
  * Based on http://www.openprocessing.org/sketch/177
  */
+@SuppressWarnings({"Convert2streamapi", "FieldCanBeLocal"})
 public class GraphApplet extends PApplet {
-    private enum GraphMode {
+    private enum SpawnMode {
         RANDOM,
         POLYNET
+    }
+    private enum MouseMode {
+        NONE,
+        ATTRACT,
+        REPULSE
     }
 
     private static final float mouseMass = 30;
@@ -22,38 +28,44 @@ public class GraphApplet extends PApplet {
 
     private boolean renderTrail = true;
     private boolean renderArcs = true;
-    private boolean mouseAttract = false;
-    private boolean mouseRepulse = true;
     private boolean renderBalls = true;
 
-    private GraphMode mode = GraphMode.RANDOM;
+    private SpawnMode spawnMode = SpawnMode.RANDOM;
+    private MouseMode mouseMode = MouseMode.REPULSE;
     private List<GraphNode> nodes;
     private List<GraphArc> arcs;
     private float k;
     private int t;
     private float tMass;
     private int curn;
-    private int nn;
+    private int maybe_desiredNodeCount;
     private float curMass;
 
     @Override
     public void keyPressed() {
         if (key == '+') {
-            nn++;
-            return;
+            maybe_desiredNodeCount++;
         } else if (key == 't') {
             renderTrail = !renderTrail;
-            return;
         } else if (key == 'b') {
             renderBalls = !renderBalls;
-            return;
-        }
-
-        if (key == ENTER) {
-            if (mode == GraphMode.RANDOM)
-                mode = GraphMode.POLYNET;
+        } else if (key == 'm') {
+            switch (mouseMode) {
+                case NONE:
+                    mouseMode = MouseMode.ATTRACT;
+                    break;
+                case ATTRACT:
+                    mouseMode = MouseMode.REPULSE;
+                    break;
+                case REPULSE:
+                    mouseMode = MouseMode.NONE;
+                    break;
+            }
+        } else if (key == ENTER) {
+            if (spawnMode == SpawnMode.RANDOM)
+                spawnMode = SpawnMode.POLYNET;
             else
-                mode = GraphMode.RANDOM;
+                spawnMode = SpawnMode.RANDOM;
             prepare();
         }
     }
@@ -86,10 +98,10 @@ public class GraphApplet extends PApplet {
     private void prepare() {
         nodes.clear();
         arcs.clear();
-        switch (mode) {
+        switch (spawnMode) {
             case RANDOM:
-                nn = 15;
-                k = sqrt(min(width, height) / nn) * .05f;
+                maybe_desiredNodeCount = 15;
+                k = sqrt(min(width, height) / maybe_desiredNodeCount) * .05f;
                 nodes.add(
                         new GraphNode(
                                 random(width / 2 - width / 8, width / 2 + width / 8),
@@ -97,8 +109,8 @@ public class GraphApplet extends PApplet {
                                 4));
                 break;
             case POLYNET:
-                nn = 4;
-                k = sqrt(width * height / nn) * .5f;
+                maybe_desiredNodeCount = 4;
+                k = sqrt(width * height / maybe_desiredNodeCount) * .5f;
                 nodes.add(
                         new GraphNode(
                                 random(width / 2 - width / 8, width / 2 + width / 8),
@@ -119,62 +131,64 @@ public class GraphApplet extends PApplet {
         //return 20*(m1*m2)/pow(z,2); - commented out in original
     }
 
-    @Override
-    public void draw() {
-        if ((t++ % vel) == 0 && curn < nn) {
-            curn++;
-            int r = (int) (random(1, nodes.size() - 1)) - 1;
-            int s = 0;
-            boolean gen = false;
-    if (random(1)<.1)
-                gen=true;
-            if (nodes.size() > 5 && gen) {
-                s = (int) (random(1, nodes.size() - 1)) - 1;
-                while (r == s)
-                    s = (int) (random(1, nodes.size() - 1)) - 1;
-            }
-            GraphNode nr = nodes.get(r);
-            GraphNode ss = nodes.get(s);
-            GraphNode newn;
-            switch (mode) {
-                case RANDOM:
-                    newn = new GraphNode(nr.pos.x + random(nr.mass, nr.mass + 10), nr.pos.y + random(nr.mass, nr.mass + 10), 4);
-                    nodes.add(newn);
-                    arcs.add(new GraphArc(newn, nr));
-                    newn.incrMass(2);
-                    nr.incrMass(2);
-                    if (nodes.size() > 5 && gen) {
-                        arcs.add(new GraphArc(newn, ss));
-                        newn.incrMass(2);
-                        ss.incrMass(2);
-                    }
-                    break;
-                case POLYNET:
-                    float prob = random(1);
-                    newn = new GraphNode(random(width), random(height), 10);
-                    nodes.add(newn);
-                    for (GraphNode m : nodes) {
-                        if (newn == m) continue;
-                        arcs.add(new GraphArc(newn, m));
-                    }
-                    break;
-            }
+    private void spawnNewNode() {
+        int nodeIndexA = (int) (random(1, nodes.size() - 1)) - 1;
+        int nodeIndexB = 0;
+        boolean gen = false;
+        if (random(1)<.1)
+            gen=true;
+        if (nodes.size() > 5 && gen) {
+            nodeIndexB = (int) (random(1, nodes.size() - 1)) - 1;
+            while (nodeIndexA == nodeIndexB)
+                nodeIndexB = (int) (random(1, nodes.size() - 1)) - 1;
         }
-        background(0.9411765f);
+        GraphNode nodeA = nodes.get(nodeIndexA);
+        GraphNode nodeB = nodes.get(nodeIndexB);
+        GraphNode newNode;
+        switch (spawnMode) {
+            case RANDOM:
+                newNode = new GraphNode(
+                    nodeA.position.x + random(nodeA.mass, nodeA.mass + 10),
+                    nodeA.position.y + random(nodeA.mass, nodeA.mass + 10),
+                    4);
+                nodes.add(newNode);
+                arcs.add(new GraphArc(newNode, nodeA));
+                newNode.incrMass(2);
+                nodeA.incrMass(2);
+                if (nodes.size() > 5 && gen) {
+                    arcs.add(new GraphArc(newNode, nodeB));
+                    newNode.incrMass(2);
+                    nodeB.incrMass(2);
+                }
+                break;
+            case POLYNET:
+                newNode = new GraphNode(random(width), random(height), 10);
+                nodes.add(newNode);
+                for (GraphNode m : nodes) {
+                    if (newNode != m) {
+                        arcs.add(new GraphArc(newNode, m));
+                    }
+                }
+                break;
+        }
+    }
+
+    private void update() {
+        if ((t++ % vel) == 0 && curn < maybe_desiredNodeCount) {
+            curn++;
+            spawnNewNode();
+        }
         if (tMass < 1) {
             tMass += .1;
             curMass = sin(PI * tMass) * 600 * (1 - tMass);
-            //
         }
 
         curMass = max(curMass, mouseMass);
 
-
-        noStroke();
         for (GraphNode u : nodes) {
             for (GraphNode v : nodes) {
                 if (u != v) {
-                    PVector delta = PVector.sub(v.pos, u.pos);
+                    PVector delta = PVector.sub(v.position, u.position);
                     if (delta.mag() != 0) {
                         v.disp.add(delta.copy().normalize().mult(fr(v.mass, u.mass, delta.mag())));
                     }
@@ -183,50 +197,86 @@ public class GraphApplet extends PApplet {
         }
 
         for (GraphArc e : arcs) {
-            PVector delta = PVector.sub(e.v.pos, e.u.pos);
+            PVector delta = PVector.sub(e.v.position, e.u.position);
             if (delta.mag() != 0) {
                 e.v.disp.sub(delta.copy().normalize().mult(fa(e.v.mass, e.u.mass, delta.mag())));
                 e.u.disp.add(delta.copy().normalize().mult(fa(e.v.mass, e.u.mass, delta.mag())));
             }
         }
-        for (GraphNode u : nodes) {
-            if (mouseAttract) {
-                PVector mousepos = new PVector(mouseX, mouseY);
-                PVector delta = PVector.sub(u.pos, mousepos);
-                if (delta.mag() != 0) {
-                    u.disp.sub(delta.copy().normalize().mult(fa(u.mass, curMass, delta.mag())));
-                    stroke(0, 0, 0, 0.078431375f);
-                    line(u.pos.x, u.pos.y, mouseX, mouseY);
-                    noStroke();
-                }
-            }
-            if (mouseRepulse) {
-                PVector mousepos = new PVector(mouseX, mouseY);
-                PVector delta = PVector.sub(u.pos, mousepos);
-                if (delta.mag() < curMass + u.mass + 100) {
-                    u.disp.add(delta.copy().normalize().mult(fr(u.mass, curMass, delta.mag())));
-                }
-            }
-            u.update();
-            u.constrain(ValueRange.create(new PVector(0, 0), new PVector(width, height)));
+
+        applyMouseForces();
+
+        for (GraphNode node : nodes) {
+            node.update();
+            node.constrain(ValueRange.create(new PVector(0, 0), new PVector(width, height)));
+            node.setBall(renderBalls);
+            node.setTrail(renderTrail);
         }
+    }
+
+    private void applyMouseForces() {
+        for (GraphNode u : nodes) {
+            switch (mouseMode) {
+                case ATTRACT: {
+                    PVector mousepos = new PVector(mouseX, mouseY);
+                    PVector delta = PVector.sub(u.position, mousepos);
+                    if (delta.mag() != 0) {
+                        u.disp.sub(delta.copy().normalize().mult(fa(u.mass, curMass, delta.mag())));
+                    }
+                    break;
+                }
+                case REPULSE: {
+                    PVector mousepos = new PVector(mouseX, mouseY);
+                    PVector delta = PVector.sub(u.position, mousepos);
+                    if (delta.mag() < curMass + u.mass + 100) {
+                        u.disp.add(delta.copy().normalize().mult(fr(u.mass, curMass, delta.mag())));
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    private void drawMouseConnectors() {
+        pushStyle();
+        stroke(0, 0, 0, 0.078431375f);
+        PVector mousepos = new PVector(mouseX, mouseY);
+        for (GraphNode node : nodes) {
+            PVector delta = PVector.sub(node.position, mousepos);
+            if (delta.mag() > 0) {
+                line(node.position.x, node.position.y, mouseX, mouseY);
+            }
+        }
+        popStyle();
+    }
+
+    @Override
+    public void draw() {
+        background(0.9411765f);
+
+        update();
+
+        if (mouseMode == MouseMode.ATTRACT) {
+            drawMouseConnectors();
+        }
+
         if (renderArcs) {
+            pushStyle();
+            noStroke();
             Drawable.drawAll(g, arcs);
+            popStyle();
         }
-        for (GraphNode u : nodes) {
-            if (renderTrail)
-                u.setTrail(true);
-            else
-                u.setTrail(false);
-            if (renderBalls)
-                u.setBall(true);
-            else
-                u.setBall(false);
-            u.draw(g);
-        }
+
+        pushStyle();
+        noStroke();
+        Drawable.drawAll(g, nodes);
+        popStyle();
+
+        pushStyle();
         noFill();
         stroke(0.78431374f, 0.39215687f, 0f, 0.078431375f);
         ellipse(mouseX, mouseY, curMass, curMass);
+        popStyle();
 
     }
 

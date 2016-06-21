@@ -2,6 +2,7 @@ package net.t3kt.memory.prototype.graph;
 
 import net.t3kt.memory.prototype.Drawable;
 import processing.core.PGraphics;
+import processing.core.PVector;
 
 /**
  * Based on http://www.openprocessing.org/sketch/177
@@ -18,13 +19,11 @@ public class GraphArc implements Drawable {
 
     @Override
     public void draw(PGraphics g) {
-//        int r=(int)((red(v.mycolor)+red(u.mycolor))/2);
-//        int g=(int)((green(v.mycolor)+green(u.mycolor))/2);
-//        int b=(int)((blue(v.mycolor)+blue(u.mycolor))/2);
-//        stroke(r,g,b);
+        g.pushStyle();
         v.mycolor.lerpRgba(u.mycolor, 0.5f).applyToStroke(g);
-        //line(v.pos.x,v.pos.y,u.pos.x,u.pos.y); - commented out in original
-        g.bezier(v.pos.x,v.pos.y,v.oldpos[2].x,v.oldpos[2].y,u.oldpos[2].x,u.oldpos[2].y,u.pos.x,u.pos.y);
-        g.noStroke();
+        PVector uOldPos = u.getSecondTrailPosition();
+        PVector vOldPos = v.getSecondTrailPosition();
+        g.bezier(v.position.x, v.position.y, vOldPos.x, vOldPos.y, uOldPos.x, uOldPos.y, u.position.x, u.position.y);
+        g.popStyle();
     }
 }
