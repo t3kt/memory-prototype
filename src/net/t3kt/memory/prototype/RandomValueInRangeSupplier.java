@@ -5,11 +5,11 @@ import com.google.common.collect.Range;
 import java.util.Random;
 import java.util.function.Supplier;
 
-final class RandomValueInRangeSupplier implements Supplier<Float> {
+public final class RandomValueInRangeSupplier implements Supplier<Float> {
     private final Random random;
     private final Range<Float> range;
 
-    RandomValueInRangeSupplier(float minVal, float maxVal) {
+    public RandomValueInRangeSupplier(float minVal, float maxVal) {
         range = Range.open(minVal, maxVal);
         this.random = new Random();
     }

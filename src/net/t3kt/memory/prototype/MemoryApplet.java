@@ -123,9 +123,9 @@ public class MemoryApplet extends PApplet {
         clear();
         background(1f);
 
-        drawAll(observers);
+        Drawable.drawAll(g, observers);
 
-//        drawAll(occurrences);
+//        Drawable.drawAll(occurrences);
 
         for (OccurrenceEntity occurrence : occurrences) {
             occurrence.draw(g);
@@ -135,7 +135,7 @@ public class MemoryApplet extends PApplet {
             }
         }
 
-        drawAll(animations);
+        Drawable.drawAll(g, animations);
     }
 
     private void drawConnection(ObserverEntity observer, OccurrenceEntity occurrence) {
@@ -147,12 +147,6 @@ public class MemoryApplet extends PApplet {
         line(observer.x(), observer.y(), occurrence.x(), occurrence.y());
 
         popStyle();
-    }
-
-    private void drawAll(Iterable<? extends Drawable> items) {
-        for (Drawable item : items) {
-            item.draw(g);
-        }
     }
 
     public static void main(String[] args) {

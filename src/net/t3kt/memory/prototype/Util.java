@@ -2,6 +2,7 @@ package net.t3kt.memory.prototype;
 
 import com.google.common.collect.Range;
 import processing.core.PApplet;
+import processing.core.PVector;
 
 public class Util {
 
@@ -19,5 +20,12 @@ public class Util {
             return high;
         }
         return val;
+    }
+
+    public static PVector clamp(PVector val, PVector low, PVector high) {
+        return new PVector(
+                clamp(val.x, low.x, high.x),
+                clamp(val.y, low.y, high.y),
+                clamp(val.z, low.z, high.z));
     }
 }
