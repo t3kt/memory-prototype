@@ -57,6 +57,14 @@ public class MemoryApplet extends PApplet {
                 connected = true;
             }
         }
+        animations.add(
+            Animation.expandingCircle(
+                3000,
+                occurrence.getPosition(),
+                ValueRange.create(0f, 20f),
+                Optional.absent(),
+                Optional.of(ValueRange.create(Color.createRgba(0.2f, 0.2f, 0.7f, 0.5f), Color.createRgba(0.2f, 0.2f, 0.7f, 0f))))
+                .start(millis()));
         if (connected) {
             occurrences.add(occurrence);
         }
@@ -94,13 +102,13 @@ public class MemoryApplet extends PApplet {
                 if (!occurrence.hasConnectedObservers()) {
                     killOccurrences.add(occurrence);
                     animations.add(
-                            Animation.expandingCircle(
-                                    2000,
-                                    occurrence.getPosition(),
-                                    getRadius,
-                                    Optional.absent(),
-                                    getStrokeColor)
-                                    .start(now));
+                        Animation.expandingCircle(
+                            2000,
+                            occurrence.getPosition(),
+                            getRadius,
+                            Optional.absent(),
+                            getStrokeColor)
+                            .start(now));
                 }
             }
         }
@@ -136,6 +144,12 @@ public class MemoryApplet extends PApplet {
         }
 
         Drawable.drawAll(g, animations);
+
+        pushStyle();
+        textFont(SharedResources.get().getDebugFont(), 12f);
+        fill(0f, 0f, 0f, 0.5f);
+        text("FPS: " + SharedResources.get().formatFloat(frameRate), 20, 20);
+        popStyle();
     }
 
     private void drawConnection(ObserverEntity observer, OccurrenceEntity occurrence) {
